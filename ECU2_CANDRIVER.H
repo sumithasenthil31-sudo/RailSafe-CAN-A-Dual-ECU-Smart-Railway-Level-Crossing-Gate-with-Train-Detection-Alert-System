@@ -1,0 +1,37 @@
+void can2_init(void);
+void can2_tx(CAN2_MSG m1);
+unsigned int can2_rx(CAN2_MSG *m1);
+void can2_init(void)
+{
+    PINSEL1 |= 0x00014000;
+    VPBDIV = 1;
+    C2MOD = 1;
+    AFMR = 2;
+    C2BTR = 0x00160002;
+    C2MOD = 0;
+}
+void can2_tx(CAN2_MSG m1)
+{
+    C2TID1 = m1.id;
+    C2TFI1 = (m1.dlc << 16) | (m1.rtr << 30);
+    C2TDA1 = m1.byteA;
+    C2TDB1 = m1.byteB;
+    C2CMR = (1 << 0) | (1 << 5);
+    while ((C2GSR & (1 << 3)) == 0);
+}
+unsigned int can2_rx(CAN2_MSG *m1)
+{
+    if ((C2GSR & 0x01) == 0)
+        return 0;
+    m1->id = C2RID;
+    m1->dlc = (C2RFS >> 16) & 0x0F;
+    m1->rtr = (C2RFS >> 30) & 0x01;
+    if (m1->rtr == 0)
+    {
+        m1->byteA = C2RDA;
+        m1->byteB = C2RDB;
+    }
+    C2CMR = (1 << 2);
+    return 1;
+}
+
